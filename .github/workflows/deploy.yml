@@ -20,6 +20,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -29,10 +34,19 @@ jobs:
       - name: Test AWS Connection
         run: aws sts get-caller-identity
 
+      - name: Install dependencies and build deployment package
+        run: |
+          cd src
+          mkdir -p deployment-package
+          pip install -r requirements.txt -t deployment-package/
+          cp main.py deployment-package/
+          cd deployment-package
+          zip -r ../lambda-function.zip .
+          cd ..
+
       - name: Deploy to Lambda
         run: |
           cd src
-          zip lambda-function.zip main.py
           aws lambda update-function-code \
             --function-name UserAuthenticationLoginCognito-Lambda \
             --zip-file fileb://lambda-function.zip
