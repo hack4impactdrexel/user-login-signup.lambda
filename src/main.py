@@ -1,8 +1,8 @@
-from aws_lambda_typing import events, context_
+from aws_lambda_typing import events, context
 from typing import Dict, Any
 import boto3
 
-def handler(event: events.APIGatewayProxyEventV2, context: context_.Context) -> Dict[str, Any]:
+def handler(event: events.APIGatewayProxyEventV2, context: context.Context) -> Dict[str, Any]:
     print(event)
     print(context)
 	
