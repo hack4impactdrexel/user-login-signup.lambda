@@ -36,17 +36,14 @@ jobs:
 
       - name: Install dependencies and build deployment package
         run: |
-          cd src
           mkdir -p deployment-package
           pip install -r requirements.txt -t deployment-package/
-          cp main.py deployment-package/
+          cp src/main.py deployment-package/
           cd deployment-package
           zip -r ../lambda-function.zip .
-          cd ..
 
       - name: Deploy to Lambda
         run: |
-          cd src
           aws lambda update-function-code \
             --function-name UserAuthenticationLoginCognito-Lambda \
             --zip-file fileb://lambda-function.zip
