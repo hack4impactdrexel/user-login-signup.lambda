@@ -1,0 +1,49 @@
+name: Deploy to Lambda
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+  packages: read
+  statuses: write
+
+jobs:
+  deploy:
+    name: Deploy to Lambda
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::375785164899:role/GithubActionLambda
+          aws-region: us-east-1
+
+      - name: Test AWS Connection
+        run: aws sts get-caller-identity
+
+      - name: Install dependencies and build deployment package
+        run: |
+          mkdir -p deployment-package
+          pip install -r requirements.txt -t deployment-package/
+          cp src/main.py deployment-package/
+          cd deployment-package
+          zip -r ../lambda-function.zip .
+
+      - name: Deploy to Lambda
+        run: |
+          aws lambda update-function-code \
+            --function-name UserAuthenticationLoginCognito-Lambda \
+            --zip-file fileb://lambda-function.zip
