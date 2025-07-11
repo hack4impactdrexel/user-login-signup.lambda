@@ -1,3 +1,3 @@
 aws_lambda_typing
 boto3
-botocore.exceptions
+botocore==1.39.4
