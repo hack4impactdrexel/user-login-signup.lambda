@@ -99,7 +99,3 @@ def sign_up_handler(body: Dict[str, Any]) -> Dict[str, Any]:
 
 def login_handler(body: Dict[str, Any]) -> Dict[str, Any]:
     return {}
-
-if __name__ == "__main__":
-    with open("temp.json") as f:
-        print(handler(json.load(f), None))
