@@ -7,43 +7,105 @@ on:
 
 permissions:
   id-token: write
-  contents: read
+  contents: write
   packages: read
   statuses: write
 
 jobs:
-  deploy:
-    name: Deploy to Lambda
+  lint-and-format:
+    name: Lint and Format
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
+      - name: Run Ruff linter
+        uses: astral-sh/ruff-action@v3
+        with:
+          args: check --output-format=github
+
+      # Auto-format on pull requests only
+      - name: Run Ruff formatter (pull requests)
+        uses: astral-sh/ruff-action@v3
+        with:
+          args: format
+        if: github.event_name == 'pull_request'
+
+      - name: Commit auto-formatting changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "style: auto-format code with ruff"
+          file_pattern: "*.py **/*.py"
+          commit_user_name: "github-actions[bot]"
+          commit_user_email: "github-actions[bot]@users.noreply.github.com"
+        if: github.event_name == 'pull_request'
+
+  build:
+    name: Build Lambda Package
+    runs-on: ubuntu-latest
+    needs: lint-and-format
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::375785164899:role/GithubActionLambda
-          aws-region: us-east-1
-
-      - name: Test AWS Connection
-        run: aws sts get-caller-identity
-
+      
+      - name: Load configuration
+        id: config
+        run: |
+          echo "source_file=$(jq -r '.deployment.source_file' config.json)" >> $GITHUB_OUTPUT
+          echo "requirements_file=$(jq -r '.deployment.requirements_file' config.json)" >> $GITHUB_OUTPUT
+      
       - name: Install dependencies and build deployment package
         run: |
           mkdir -p deployment-package
-          pip install -r requirements.txt -t deployment-package/
-          cp src/main.py deployment-package/
+          pip install -r ${{ steps.config.outputs.requirements_file }} -t deployment-package/
+          cp ${{ steps.config.outputs.source_file }} deployment-package/
           cd deployment-package
           zip -r ../lambda-function.zip .
+      
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lambda-deployment-package
+          path: lambda-function.zip
+          retention-days: 30
 
+  deploy:
+    name: Deploy to Lambda
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Load configuration
+        id: config
+        run: |
+          echo "aws_region=$(jq -r '.aws.region' config.json)" >> $GITHUB_OUTPUT
+          echo "role_arn=$(jq -r '.aws.role_arn' config.json)" >> $GITHUB_OUTPUT
+          echo "function_name=$(jq -r '.lambda.function_name' config.json)" >> $GITHUB_OUTPUT
+      
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ steps.config.outputs.role_arn }}
+          aws-region: ${{ steps.config.outputs.aws_region }}
+      
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: lambda-deployment-package
+      
       - name: Deploy to Lambda
         run: |
           aws lambda update-function-code \
-            --function-name UserAuthenticationLoginCognito-Lambda \
+            --function-name ${{ steps.config.outputs.function_name }} \
             --zip-file fileb://lambda-function.zip
