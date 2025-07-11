@@ -23,13 +23,13 @@ jobs:
           fetch-depth: 0
 
       - name: Run Ruff linter
-        uses: astral-sh/ruff-action@v1
+        uses: astral-sh/ruff-action@v3
         with:
           args: check --output-format=github
 
       # Auto-format on pull requests only
       - name: Run Ruff formatter (pull requests)
-        uses: astral-sh/ruff-action@v1
+        uses: astral-sh/ruff-action@v3
         with:
           args: format
         if: github.event_name == 'pull_request'
