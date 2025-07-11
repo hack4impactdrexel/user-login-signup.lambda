@@ -11,8 +11,8 @@ def handler(event: events.APIGatewayProxyEventV2, context: context.Context) -> D
     # print(event)
     # print(context)
     try:
-        event = json.loads(event)
-        body = json.loads(event.get("body", {}))
+        raw_body = event.get("body", "{}")
+        body = json.loads(raw_body) if isinstance(raw_body, str) else raw_body
         if "login" in event["path"]:
             return login_handler(body)
         elif "sign-up" in event["path"]:
@@ -32,6 +32,8 @@ def handler(event: events.APIGatewayProxyEventV2, context: context.Context) -> D
 def sign_up_handler(body: Dict[str, Any]) -> Dict[str, Any]:
     email = body.get("email", "")
     password = body.get("password", "")
+    phone_number = body.get("phone_number", "")
+    full_name = body.get("full_name", "")
 
     if not email:
         return {
@@ -43,6 +45,16 @@ def sign_up_handler(body: Dict[str, Any]) -> Dict[str, Any]:
             "status": 400,
             "body": "No password provided."
         }
+    if not phone_number:
+        return {
+            "status": 400,
+            "body": "No phone number provided."
+        }
+    if not full_name:
+        return {
+            "status": 400,
+            "body": "No name provided."
+        }
     
     try:
         response = client.sign_up(
@@ -50,10 +62,10 @@ def sign_up_handler(body: Dict[str, Any]) -> Dict[str, Any]:
             Username=email,
             Password=password,
             UserAttributes=[
-                {
-                    "Name": "email",
-                    "Value": email
-                }
+                {"Name": "email", "Value": email},
+                {"Name": "phone_number", "Value": phone_number},
+                {"Name": "name", "Value": full_name},
+                {"Name": "picture", "Value": "s3://ifam-project-user-profile-pictures/user.png"}
             ]
         )
 
@@ -61,7 +73,7 @@ def sign_up_handler(body: Dict[str, Any]) -> Dict[str, Any]:
             "status": 200,
             "body": json.dumps({
                 "message": "Sign-up successful. Please confirm your email.",
-                "userConfirmed": response.get("UserConfirmed", False)
+                "userConfirmed": response.get("UserConfirmed", False),
             })
         }
     except client.exceptions.UsernameExistsException:
@@ -85,5 +97,5 @@ def sign_up_handler(body: Dict[str, Any]) -> Dict[str, Any]:
             "body": f"Internal Server Error. {e}"
         }
 
-def login_handler() -> Dict[str, Any]:
+def login_handler(body: Dict[str, Any]) -> Dict[str, Any]:
     return {}

@@ -4,18 +4,38 @@ from src.main import sign_up_handler, client
 import botocore.exceptions
 
 valid_body = {
-	"email": "mahidhar1287@gmail.com",
-	"password": "Yogi6011$"
+	"email": "temp@h4i.com",
+	"password": "H4i12345$",
+    "phone_number": "+12345678900",
+    "full_name": "Technical Lead",
 }
 
 no_email_body = {
     "email": "",
-    "password": "Yogi6011$"
+	"password": "H4i12345$",
+    "phone_number": "+12345678900",
+    "full_name": "Technical Lead",
 }
 
 no_password_body = {
-    "email": "mahidhar1287@gmail.com",
-    "password": ""
+    "email": "temp@h4i.com",
+	"password": "",
+    "phone_number": "+12345678900",
+    "full_name": "Technical Lead",
+}
+
+no_phone_number_body = {
+    "email": "temp@h4i.com",
+	"password": "H4i12345$",
+    "phone_number": "",
+    "full_name": "Technical Lead",
+}
+
+no_name_body = {
+    "email": "temp@h4i.com",
+	"password": "H4i12345$",
+    "phone_number": "+12345678900",
+    "full_name": "",
 }
 
 def test_signup_success():
@@ -31,6 +51,18 @@ def test_no_email_fail():
         result = sign_up_handler(no_email_body)
         assert result["status"] == 400
         assert result["body"] == "No email provided."
+
+def test_no_phone_number_fail():
+    with patch("src.main.client.sign_up"):
+        result = sign_up_handler(no_phone_number_body)
+        assert result["status"] == 400
+        assert result["body"] == "No phone number provided."
+
+def test_no_name_fail():
+    with patch("src.main.client.sign_up"):
+        result = sign_up_handler(no_name_body)
+        assert result["status"] == 400
+        assert result["body"] == "No name provided."
 
 def test_no_password_fail():
     with patch("src.main.client.sign_up"):
