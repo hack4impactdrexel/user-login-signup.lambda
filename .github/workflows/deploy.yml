@@ -7,7 +7,7 @@ on:
 
 permissions:
   id-token: write
-  contents: read
+  contents: write  # Changed from 'read' to 'write' for auto-commit
   packages: read
   statuses: write
 
@@ -18,14 +18,27 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Run Ruff linter
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Run Ruff linter with auto-fix
         uses: astral-sh/ruff-action@v1
         with:
-          args: check --output-format=github
-      - name: Run Ruff formatter
+          args: check --fix --output-format=github
+
+      - name: Run Ruff formatter (auto-format)
         uses: astral-sh/ruff-action@v1
         with:
-          args: format --check
+          args: format
+
+      - name: Commit auto-formatting changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "style: auto-format code with ruff"
+          file_pattern: "*.py **/*.py"
+          commit_user_name: "github-actions[bot]"
+          commit_user_email: "github-actions[bot]@users.noreply.github.com"
 
   build:
     name: Build Lambda Package
