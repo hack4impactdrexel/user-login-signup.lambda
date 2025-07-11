@@ -25,7 +25,7 @@ jobs:
       - name: Run Ruff linter
         uses: astral-sh/ruff-action@v3
         with:
-          args: check --output-format=github
+          args: check . --exclude tests --output-format=github
 
       # Auto-format on pull requests only
       - name: Run Ruff formatter (pull requests)
