@@ -1,0 +1,14 @@
+{
+  "aws": {
+    "region": "us-east-1",
+    "role_arn": "arn:aws:iam::375785164899:role/GithubActionLambda"
+  },
+  "lambda": {
+    "function_name": "UserAuthenticationLoginCognito-Lambda",
+    "runtime": "python3.11"
+  },
+  "deployment": {
+    "source_file": "src/main.py",
+    "requirements_file": "requirements.txt"
+  }
+}

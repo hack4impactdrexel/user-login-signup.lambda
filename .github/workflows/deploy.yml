@@ -25,11 +25,20 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Load configuration
+        id: config
+        run: |
+          echo "aws_region=$(jq -r '.aws.region' config.json)" >> $GITHUB_OUTPUT
+          echo "role_arn=$(jq -r '.aws.role_arn' config.json)" >> $GITHUB_OUTPUT
+          echo "function_name=$(jq -r '.lambda.function_name' config.json)" >> $GITHUB_OUTPUT
+          echo "source_file=$(jq -r '.deployment.source_file' config.json)" >> $GITHUB_OUTPUT
+          echo "requirements_file=$(jq -r '.deployment.requirements_file' config.json)" >> $GITHUB_OUTPUT
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::375785164899:role/GithubActionLambda
-          aws-region: us-east-1
+          role-to-assume: ${{ steps.config.outputs.role_arn }}
+          aws-region: ${{ steps.config.outputs.aws_region }}
 
       - name: Test AWS Connection
         run: aws sts get-caller-identity
@@ -37,13 +46,13 @@ jobs:
       - name: Install dependencies and build deployment package
         run: |
           mkdir -p deployment-package
-          pip install -r requirements.txt -t deployment-package/
-          cp src/main.py deployment-package/
+          pip install -r ${{ steps.config.outputs.requirements_file }} -t deployment-package/
+          cp ${{ steps.config.outputs.source_file }} deployment-package/
           cd deployment-package
           zip -r ../lambda-function.zip .
 
       - name: Deploy to Lambda
         run: |
           aws lambda update-function-code \
-            --function-name UserAuthenticationLoginCognito-Lambda \
+            --function-name ${{ steps.config.outputs.function_name }} \
             --zip-file fileb://lambda-function.zip
