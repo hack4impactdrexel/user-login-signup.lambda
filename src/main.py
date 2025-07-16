@@ -6,10 +6,11 @@ import botocore.exceptions
 
 client = boto3.client('cognito-idp', region_name="us-east-1")
 COGNITO_USER_POOL_ID = "1hcrufs3e1m66gmes0jisr34ce"
+COGNITO_CLIENT_ID = "us-east-1_9TZBS9Yey"
 
 def handler(event: events.APIGatewayProxyEventV2, context: context.Context) -> Dict[str, Any]:
-    # print(event)
-    # print(context)
+    print(event)
+    print(context)
     try:
         raw_body = event.get("body", "{}")
         body = json.loads(raw_body) if isinstance(raw_body, str) else raw_body
@@ -115,6 +116,7 @@ def login_handler(body: Dict[str, Any]) -> Dict[str, Any]:
         }
 
     try:
+        print("Before: ", email, password)
         response = client.initiate_auth(
             AuthFlow='USER_PASSWORD_AUTH',
             AuthParameters={
@@ -123,6 +125,7 @@ def login_handler(body: Dict[str, Any]) -> Dict[str, Any]:
             },
             ClientId=COGNITO_USER_POOL_ID
         )
+        print("After: ", response)
 
         return {
             "status": 200,
