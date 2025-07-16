@@ -17,6 +17,8 @@ def handler(event: events.APIGatewayProxyEventV2, context: context.Context) -> D
             return login_handler(body)
         elif "sign-up" in event["path"]:
             return sign_up_handler(body)
+        elif "forgot-password" in event["path"]:
+            return forgot_password_handler(body)
         else:
             return {
                 "status": 501,
@@ -98,4 +100,59 @@ def sign_up_handler(body: Dict[str, Any]) -> Dict[str, Any]:
         }
 
 def login_handler(body: Dict[str, Any]) -> Dict[str, Any]:
+    email = body.get("email", "")
+    password = body.get("password", "")
+
+    if not email:
+        return {
+            "status": 400,
+            "body": "No email provided."
+        }
+    if not password:
+        return {
+            "status": 400,
+            "body": "No password provided."
+        }
+
+    try:
+        response = client.initiate_auth(
+            AuthFlow='USER_PASSWORD_AUTH',
+            AuthParameters={
+                'USERNAME': email,
+                'PASSWORD': password
+            },
+            ClientId=COGNITO_USER_POOL_ID
+        )
+
+        return {
+            "status": 200,
+            "body": json.dumps({
+                "message": "Login successful.",
+                "id_token": response['AuthenticationResult']['IdToken'],
+                "access_token": response['AuthenticationResult']['AccessToken'],
+                "refresh_token": response['AuthenticationResult']['RefreshToken']
+            })
+        }
+    except client.exceptions.NotAuthorizedException:
+        return {
+            "status": 401,
+            "body": "Incorrect username or password."
+        }
+    except client.exceptions.UserNotConfirmedException:
+        return {
+            "status": 403,
+            "body": "User not confirmed. Please confirm your email."
+        }
+    except botocore.exceptions.ClientError as e:
+        return {
+            "status": 500,
+            "body": f"ClientError: {e}"
+        }
+    except Exception as e:
+        return {
+            "status": 500,
+            "body": f"Internal Server Error. {e}"
+        }
+
+def forgot_password_handler(body: Dict[str, Any]) -> Dict[str, Any]:
     return {}
