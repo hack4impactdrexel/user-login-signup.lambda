@@ -116,7 +116,6 @@ def login_handler(body: Dict[str, Any]) -> Dict[str, Any]:
         }
 
     try:
-        print("Before: ", email, password)
         response = client.initiate_auth(
             AuthFlow='USER_PASSWORD_AUTH',
             AuthParameters={
@@ -125,7 +124,6 @@ def login_handler(body: Dict[str, Any]) -> Dict[str, Any]:
             },
             ClientId=COGNITO_USER_POOL_ID
         )
-        print("After: ", response)
 
         return {
             "status": 200,
